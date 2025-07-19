@@ -1,0 +1,7 @@
+history.retention:
+  - value: 168h  # 7 días
+    constraints: {}
+
+limit.maxWorkflowTaskRetries:
+  - value: 5
+    constraints: {}

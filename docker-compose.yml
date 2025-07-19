@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  elasticsearch:
+    image: elasticsearch:7.17.17
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: curl --silent --fail localhost:9200/_cluster/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  temporal:
+    image: temporalio/auto-setup:latest
+    ports:
+      - "7233:7233"
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: postgres
+      VISIBILITY_STORE: elasticsearch
+      ES_SEEDS: http://elasticsearch:9200
+      ES_VERSION: v7
+    depends_on:
+      - postgres
+      - elasticsearch
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      - temporal
+
+  temporal-admin-tools:
+    image: temporalio/admin-tools:latest
+    stdin_open: true
+    tty: true
+    depends_on:
+      - temporal
+    entrypoint: /bin/sh
+
+volumes:
+  pgdata:
+  esdata:
