@@ -1,48 +1,46 @@
-// main.go
 package main
 
 import (
+	"github.com/go-resty/resty/v2"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"log"
-	"loom-api/api/infrastructure/httpclient"
+	"loom-api/api/application/sportlink/team/usecases"
+	iteam "loom-api/api/infrastructure/persistence/sportlink/team"
 	"loom-api/api/infrastructure/rest"
-	restPoc "loom-api/api/infrastructure/rest/poc"
-	"loom-api/api/infrastructure/temporal"
+	rteam "loom-api/api/infrastructure/rest/sportlink/team"
+	"loom-api/api/infrastructure/temporal/sportlink/team"
 )
 
 func main() {
-	// Crear cliente Temporal
 	temporalClient, err := client.Dial(client.Options{})
 	if err != nil {
 		log.Fatalf("No se pudo conectar a Temporal: %v", err)
 	}
 	defer temporalClient.Close()
 
-	// Instanciar activities con sus dependencias
-	httpClient := &httpclient.RestyHttpClient{}
-	activities := &temporal.Activities{
-		HttpClient: httpClient,
+	// SportLink
+	teamRepository := iteam.NewRepository(resty.New())
+	createTeamUC := usecases.NewCreateTeamUC(teamRepository)
+
+	// SportLink Workflows
+	creationWorkflow := team.CreationWorkflow{
+		CreateTeamActivity: createTeamUC,
 	}
-
-	// Crear y arrancar worker (workflow + activities)
-	w := worker.New(temporalClient, "load-test-task-queue", worker.Options{})
-
-	w.RegisterWorkflow(activities.LoadTestWorkflow)
-	w.RegisterActivity(activities.HttpGetActivity)
-	w.RegisterActivity(activities.ProcessResponseActivity)
+	sW := worker.New(temporalClient, "sportlink-task-queue", worker.Options{})
+	sW.RegisterWorkflow(creationWorkflow.InvokeCreationWorkflow)
+	sW.RegisterActivity(creationWorkflow.CreateTeamActivity.Invoke)
 
 	go func() {
-		if err := w.Run(worker.InterruptCh()); err != nil {
+		if err := sW.Run(worker.InterruptCh()); err != nil {
 			log.Fatalf("Worker terminó con error: %v", err)
 		}
 	}()
 
-	// Crear handler HTTP con cliente Temporal para disparar workflows
-	handler := restPoc.NewHandler(temporalClient)
+	teamHandler := rteam.NewHandler(temporalClient)
+	router := rest.NewRouter(teamHandler)
 
-	// Levantar servidor HTTP usando función StartServer de rest
-	if err := rest.StartServer(":8081", handler); err != nil {
+	if err := rest.StartServer(":8081", router); err != nil {
 		log.Fatalf("Error iniciando servidor HTTP: %v", err)
 	}
 }
