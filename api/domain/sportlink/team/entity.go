@@ -31,6 +31,10 @@ const (
 	Tennis   Sport = "Tennis"
 )
 
+type ID struct {
+	Name  string
+	Sport Sport
+}
 type Entity struct {
 	ID       string
 	Category Category

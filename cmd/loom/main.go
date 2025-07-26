@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/go-resty/resty/v2"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"log"
@@ -21,15 +22,23 @@ func main() {
 
 	// SportLink
 	teamRepository := iteam.NewRepository(resty.New())
+	searchRepository := iteam.NewSearchRepository(resty.New())
 	createTeamUC := usecases.NewCreateTeamUC(teamRepository)
+	retrieveTeamUc := usecases.NewRetrieveTeamUC(searchRepository)
 
 	// SportLink Workflows
 	creationWorkflow := team.CreationWorkflow{
-		CreateTeamActivity: createTeamUC,
+		CreateTeamActivity:   createTeamUC,
+		RetrieveTeamActivity: retrieveTeamUc,
 	}
 	sW := worker.New(temporalClient, "sportlink-task-queue", worker.Options{})
 	sW.RegisterWorkflow(creationWorkflow.InvokeCreationWorkflow)
-	sW.RegisterActivity(creationWorkflow.CreateTeamActivity.Invoke)
+	sW.RegisterActivityWithOptions(creationWorkflow.CreateTeamActivity.Invoke, activity.RegisterOptions{
+		Name: "CreateTeamActivity",
+	})
+	sW.RegisterActivityWithOptions(creationWorkflow.RetrieveTeamActivity.Invoke, activity.RegisterOptions{
+		Name: "RetrieveTeamActivity",
+	})
 
 	go func() {
 		if err := sW.Run(worker.InterruptCh()); err != nil {

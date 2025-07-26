@@ -8,7 +8,8 @@ import (
 )
 
 type CreationWorkflow struct {
-	CreateTeamActivity application.UseCase[team.Entity, team.Entity]
+	CreateTeamActivity   application.UseCase[team.Entity, team.Entity]
+	RetrieveTeamActivity application.UseCase[team.ID, team.Entity]
 }
 
 func (c *CreationWorkflow) InvokeCreationWorkflow(ctx workflow.Context) error {
@@ -17,15 +18,28 @@ func (c *CreationWorkflow) InvokeCreationWorkflow(ctx workflow.Context) error {
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
-	err := workflow.ExecuteActivity(ctx, c.CreateTeamActivity.Invoke, team.Entity{
+	err := workflow.ExecuteActivity(ctx, "CreateTeamActivity", team.Entity{
 		ID:       "Boca",
 		Sport:    team.Football,
 		Category: team.L1,
 	}).Get(ctx, nil)
 
+	workflow.GetLogger(ctx).Info("Team created. Now searching....")
+
 	if err != nil {
 		return err
 	}
+
+	err = workflow.ExecuteActivity(ctx, "RetrieveTeamActivity", team.ID{
+		Name:  "Boca",
+		Sport: team.Football,
+	}).Get(ctx, nil)
+
+	if err != nil {
+		return err
+	}
+
+	workflow.GetLogger(ctx).Info("Team found.")
 
 	return nil
 }

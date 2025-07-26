@@ -21,24 +21,33 @@ func NewHandler(c client.Client) Handler {
 }
 
 func (h *RestHandler) TeamCreationScenario(w http.ResponseWriter, r *http.Request) {
-	workflowOptions := client.StartWorkflowOptions{
+	we, err := h.TemporalClient.ExecuteWorkflow(r.Context(), client.StartWorkflowOptions{
 		ID:        "sportlink-team-creation" + GenerateRandomID(),
 		TaskQueue: "sportlink-task-queue",
-	}
-
-	we, err := h.TemporalClient.ExecuteWorkflow(r.Context(), workflowOptions, "InvokeCreationWorkflow")
+	}, "InvokeCreationWorkflow")
 	if err != nil {
 		log.Printf("Error iniciando workflow: %v", err)
 		http.Error(w, "Error iniciando workflow", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]string{
+	responseBody, err := json.Marshal(map[string]string{
 		"workflowID": we.GetID(),
 		"runID":      we.GetRunID(),
 	})
+
+	if err != nil {
+		log.Printf("Error serializando respuesta: %v", err)
+		http.Error(w, "Error interno al serializar respuesta", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+
+	if _, err := w.Write(responseBody); err != nil {
+		log.Printf("Error writing responseBody: %v", err)
+		http.Error(w, "Error interno al serializar respuesta", http.StatusInternalServerError)
+	}
 }
 
 func GenerateRandomID() string {
