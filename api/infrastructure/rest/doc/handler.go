@@ -2,12 +2,15 @@ package doc
 
 import (
 	"bytes"
+	"github.com/go-chi/chi/v5"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
+	"strings"
 )
 
 func renderMarkdown(filePath string) ([]byte, error) {
@@ -39,14 +42,26 @@ func renderMarkdown(filePath string) ([]byte, error) {
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	file := r.URL.Query().Get("file")
-	if file == "" {
+	var file string
+
+	if filename := chi.URLParam(r, "filename"); filename != "" {
+		cleanFilename := filepath.Clean(filename)
+		if !strings.HasSuffix(cleanFilename, ".md") {
+			http.Error(w, "Tipo de archivo no permitido", http.StatusForbidden)
+			return
+		}
+		file = filepath.Clean("docs/" + cleanFilename)
+		if !strings.HasPrefix(file, "docs/") {
+			http.Error(w, "Archivo no permitido", http.StatusForbidden)
+			return
+		}
+	} else {
 		file = "docs/api.md"
 	}
 
 	html, err := renderMarkdown(file)
 	if err != nil {
-		http.Error(w, "Error procesando el archivo: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error procesando el archivo: "+err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -115,5 +130,4 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 <body>`))
 	w.Write(html)
 	w.Write([]byte(`</body></html>`))
-
 }

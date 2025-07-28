@@ -1,20 +1,17 @@
-# API Documentation
+# Loom Api
 
-## Índice
+## Overview
 
-- [Autenticación](#autenticación)
-- [GET /users](#get-users)
-- [POST /users](#post-users)
-- [Notas](#notas)
+This application is a load testing framework built with [Temporal](https://temporal.io/in-use) workflow engine, designed to execute various test scenarios and generate customized traffic patterns. It provides capabilities for both standard and high-load testing scenarios with customizable configurations.
 
-```json
-    {
-      "user_id": 1
-    }
-```
----
+## Key Features
 
-## Autenticación
+- **Temporal Workflow Integration**: Leverages Temporal for reliable and scalable test execution
+- **Flexible Test Scenarios**: Supports multiple configurable test cases
+- **Traffic Generation**: Capable of generating various traffic patterns
+- **Custom Load Profiles**: Allows creation of customized high-traffic scenarios
 
-Agregá el token JWT en el header:
+## Index
+
+- [Architecture](/docs/architecture.md)
 

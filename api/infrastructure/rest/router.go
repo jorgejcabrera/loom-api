@@ -11,5 +11,7 @@ func NewRouter(tHandler team.Handler) http.Handler {
 	r := chi.NewRouter()
 	r.Post("/sportlink/team_creation_scenario", tHandler.TeamCreationScenario)
 	r.Get("/docs", doc.Handler)
+	r.Get("/docs/{filename}", doc.Handler)
+
 	return r
 }
