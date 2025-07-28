@@ -7,11 +7,11 @@ import (
 	"net/http"
 )
 
-func NewRouter(tHandler team.Handler) http.Handler {
+func NewRouter(tHandler team.Handler, dHandler doc.Handler) http.Handler {
 	r := chi.NewRouter()
 	r.Post("/sportlink/team_creation_scenario", tHandler.TeamCreationScenario)
-	r.Get("/docs", doc.Handler)
-	r.Get("/docs/{filename}", doc.Handler)
+	r.Get("/docs", dHandler.HandleDocRequest)
+	r.Get("/docs/{filename}", dHandler.HandleDocRequest)
 
 	return r
 }

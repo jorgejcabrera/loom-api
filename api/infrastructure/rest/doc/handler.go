@@ -41,18 +41,30 @@ func renderMarkdown(filePath string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func Handler(w http.ResponseWriter, r *http.Request) {
+type Handler interface {
+	HandleDocRequest(w http.ResponseWriter, r *http.Request)
+}
+
+type RestHandler struct {
+	docBasePathDir string
+}
+
+func NewHandler(docBasePathDir string) Handler {
+	return &RestHandler{docBasePathDir: docBasePathDir}
+}
+
+func (rh RestHandler) HandleDocRequest(w http.ResponseWriter, r *http.Request) {
 	var file string
 
 	if filename := chi.URLParam(r, "filename"); filename != "" {
 		cleanFilename := filepath.Clean(filename)
 		if !strings.HasSuffix(cleanFilename, ".md") {
-			http.Error(w, "Tipo de archivo no permitido", http.StatusForbidden)
+			http.Error(w, "Invalid file type", http.StatusForbidden)
 			return
 		}
-		file = filepath.Clean("docs/" + cleanFilename)
-		if !strings.HasPrefix(file, "docs/") {
-			http.Error(w, "Archivo no permitido", http.StatusForbidden)
+		file = filepath.Clean(rh.docBasePathDir + cleanFilename)
+		if !strings.HasPrefix(file, rh.docBasePathDir) {
+			http.Error(w, "File not allowed", http.StatusForbidden)
 			return
 		}
 	} else {
@@ -61,7 +73,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	html, err := renderMarkdown(file)
 	if err != nil {
-		http.Error(w, "Error procesando el archivo: "+err.Error(), http.StatusNotFound)
+		http.Error(w, "Error when processed file: "+err.Error(), http.StatusNotFound)
 		return
 	}
 

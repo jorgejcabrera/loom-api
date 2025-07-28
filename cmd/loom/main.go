@@ -9,6 +9,7 @@ import (
 	"loom-api/api/application/sportlink/team/usecases"
 	iteam "loom-api/api/infrastructure/persistence/sportlink/team"
 	"loom-api/api/infrastructure/rest"
+	"loom-api/api/infrastructure/rest/doc"
 	rteam "loom-api/api/infrastructure/rest/sportlink/team"
 	"loom-api/api/infrastructure/temporal/sportlink/team"
 )
@@ -47,7 +48,8 @@ func main() {
 	}()
 
 	teamHandler := rteam.NewHandler(temporalClient)
-	router := rest.NewRouter(teamHandler)
+	docHandler := doc.NewHandler("docs/")
+	router := rest.NewRouter(teamHandler, docHandler)
 
 	if err := rest.StartServer(":8081", router); err != nil {
 		log.Fatalf("Error iniciando servidor HTTP: %v", err)
