@@ -1,4 +1,4 @@
-# 🏗️ Architecture Documentation
+# 🏗️ Architecture
 
 This project follows a Hexagonal Architecture (also known as Ports and Adapters) pattern, which promotes separation of
 concerns and maintainability through clear layer boundaries.
